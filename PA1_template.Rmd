@@ -1,25 +1,138 @@
----
-title: "Reproducible Research: Peer Assessment 1"
-output: 
-  html_document:
-    keep_md: true
----
+``` 
+Title: Reproducible research project 1 - activity pattern
+Output: html document
+```
+
+## Load the data 
+
+```{r}
+act <- read.csv("activity.csv")
+```
 
 
-## Loading and preprocessing the data
+## Q.1. What is mean total number of steps taken per day? 
+
+### Total number of steps taken per day 
+```{r}
+sumSteps <- tapply(act$steps, act$date, sum)
+```
+
+### Histogram of the total number of steps taken each day
+```{r}
+hist(sumSteps, xlab = "Number of steps", main = "Total number of steps taken per day")
+```
+
+### Calculate and report the mean and median of the total number of steps taken per day
+```{r}
+meanSteps <- mean(sumSteps, na.rm = TRUE)
+medianSteps <- median(sumSteps, na.rm = TRUE)
+```
+
+
+## Q.2. What is the average dailiy acitivity pattern?
+
+### Make a time series plot of the 5-minute interval (x-axis) and the average number of steps taken, averaged across all days(y-axis)
+
+```{r stepsInt, echo = TRUE}
+stepsInt <- tapply(act$steps, act$interval,mean, na.rm = TRUE)
+plot(as.numeric(names(stepsInt)),
+     stepsInt,
+     xlab = "Interval (5 minute)",
+     ylab = "Steps",
+     main = "Average numer of steps",
+     type = "l")
+```
+
+### Which 5-min interval, on average across all the days in the dataset, contains the maximum number of steps?
+
+```{r}
+which.max(stepsInt)
+```
+Explanation: Interval 835 has the max activity at 206.1698 steps.
+
+## Q.3. Imputing missing values
+
+### Calculate & report the total no. of missing values in the dataset (i.e. the total no. of rows with NAs).
+
+```{r}
+sum(is.na(act$steps))
+```
+**Explanation: there are 2304 missing values in this datasets.**
+
+### Devise a strategy for filling in all of the missing values in the dataset.
+**I will use mean number of steps across all days.**
+
+
+### Create a new dataset that is equal to the original dataset but with the missing data filled in.
+
+```{r}
+stepsInt <- tapply(act$steps, act$interval, mean, na.rm = TRUE)
+act.split <- split(act, act$interval)
+for(i in 1:length(act.split)){
+  act.split[[i]]$steps[is.na(act.split[[i]]$steps)] <- stepsInt[i]
+}
+act.imputed <- do.call("rbind", act.split)
+act.imputed <- act.imputed[order(act.imputed$date),]
+```
+
+### Make a histogram of the total no.of steps taken each day and calculate and report the mean and median total no. of steps taken per day. Do these values differ from the estimates from the first part of the assignment? What is the impact of imputing missing data on the estimates of the total daily number of steps?
+
+```{r stepsImputed, echo = TRUE}
+sumSteps.imputed <- tapply(act.imputed$steps, act.imputed$date, sum)
+hist(sumSteps.imputed, xlab = "Number of steps", main = "Steps per day (imputed)")
+```
+
+```{r}
+meansumSteps.imputed <- mean(sumSteps.imputed, na.rm = TRUE)
+mediansumSteps.imputed <- median(sumSteps.imputed, na.rm = TRUE)
+meansumSteps.imputed
+mediansumSteps.imputed
+```
+
+**Explanation: the imputed data has increased median value (10766.19), however the mean value (10766.19) has not changed.**
 
 
 
-## What is mean total number of steps taken per day?
+## Q.4. Are there differences in activity patterns between weekdays and weekends?
+
+### Create a new factor variable in the dataset with two levels - "weekday" and "weekend" indicating whether a given date is a weekday or weekend day.
+
+```{r}
+act.imputed$day <- ifelse(weekdays(as.Date(act.imputed$date)) == "Saturday" | weekdays(as.Date(act.imputed$date)) == "Sunday", "weekend", "weekday")
+```
 
 
+### Calculate average steps per interval for weekdays.
 
-## What is the average daily activity pattern?
-
-
-
-## Imputing missing values
-
+```{r}
+stepsInt.weekday <- tapply(act.imputed[act.imputed$day == "weekday" ,]$steps, act.imputed[act.imputed$day == "weekday" ,]$interval, mean, na.rm = TRUE)
+```
 
 
-## Are there differences in activity patterns between weekdays and weekends?
+### Calculate average steps per interval for weekends.
+
+```{r}
+stepsInt.weekend <- tapply(act.imputed[act.imputed$day == "weekend" ,]$steps, act.imputed[act.imputed$day == "weekend" ,]$interval, mean, na.rm = TRUE)
+```
+
+
+### Make panel plot of 5 min interval (x-axis) and the average number of steps taken (y-axis). 
+
+```{r multiplot, fig.width = 10, fig.height = 12, echo = TRUE}
+par(mfrow = c(2, 1))
+plot(as.numeric(names(stepsInt.weekday)),
+     stepsInt.weekday,
+     xlab = "Interval",
+     ylab = "Steps",
+     main = "Average steps taken on weekdays",
+     type = "l")
+
+plot(as.numeric(names(stepsInt.weekend)),
+     stepsInt.weekend,
+     xlab = "Interval",
+     ylab = "Steps",
+     main = "Average steps taken on weekends",
+     type = "l")
+```
+
+
